@@ -1,5 +1,7 @@
 import typing as tp
+
 from kademlia.network import Server
+
 
 class DHTNode:
     def __init__(self, port: int, nodes: tp.List[tp.Tuple[str, int]]) -> None:
@@ -13,7 +15,7 @@ class DHTNode:
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
         await self.client.quit()
-    
+
     async def connect(self) -> None:
         await self._server.listen(self._port)
         await self._server.bootstrap(self._nodes)
