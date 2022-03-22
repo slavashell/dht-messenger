@@ -52,7 +52,7 @@ class Client:
     def __init__(self, user, connection_manager):
         self.user = user
         self.key_namager = KeyManager(user.name)
-        self.history_mannager = HistoryManager(user.name)
+        self.history_mannager = HistoryManager()
         self.connection_manager = connection_manager
 
     async def connect(self):
@@ -61,7 +61,11 @@ class Client:
     def get_send_key(self, username):
         send_key = self.history_mannager.get_send_key(username)
         if not send_key:
-            send_key = self.key_namager.get_initial_chat_key(self.user.name, username)
+            self.history_mannager.update_on_send(
+                username,
+                self.key_namager.get_initial_chat_key(self.user.name, username)
+            )
+        return self.history_mannager.get_send_key(username)
 
     async def send_message(self, username, text):
         message_key = self.get_send_key(username)
@@ -71,7 +75,7 @@ class Client:
         encrypted_message = message_box.encrypt(message.json().encode('utf-8'))
         await self.connection_manager.node.set(message_key, base64.b64encode(encrypted_message))
         self.history_mannager.update_on_send(username, next_message_key)
-        return message_key
+        return message, message_key
 
     async def receive_message(self, username, message_key):
         message = await self.connection_manager.node.get(message_key)
@@ -81,6 +85,17 @@ class Client:
         decrypted_message = message_box.decrypt(base64.b64decode(message))
         return Message.parse_raw(decrypted_message)
 
+    async def receive_message_chain(self, username):
+        message_key = self.key_namager.get_initial_chat_key(username, self.user.name)
+        message_chain = []
+        while True:
+            message = await self.receive_message(username, message_key)
+            if message is None:
+                break
+            message_key = message.next_message_key
+            message_chain.append(message)
+        return message_chain
+
 async def main():
     connection_manager = ConnectionManager()
     await connection_manager.node.connect()
@@ -88,9 +103,12 @@ async def main():
     bob_client = Client(User(name='Bob'), connection_manager)
     alice_client = Client(User(name='Alice'), connection_manager)
 
-    message_key_1 = await bob_client.send_message('Alice', 'hello there')
-    mesasge = await alice_client.receive_message('Bob', message_key_1)
-    print(mesasge)
+    for i in range(10):
+        message, message_key = await bob_client.send_message('Alice', 'this is message number {}'.format(i))
+        print(message, message_key)
+
+    message_chain = await alice_client.receive_message_chain('Bob')
+    print(*message_chain, sep="\n")
 
 if __name__ == '__main__':
     asyncio.run(main())
