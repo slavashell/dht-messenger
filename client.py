@@ -54,7 +54,7 @@ class User(BaseModel):
 class Message(BaseModel):
     text: str
     next_message_key: str
-    timestamp: int
+    timestamp: float
 
 
 class Client:
@@ -86,7 +86,7 @@ class Client:
         message = Message(
             text=text,
             next_message_key=next_message_key,
-            timestamp=int(datetime.timestamp(datetime.utcnow())),
+            timestamp=datetime.timestamp(datetime.utcnow()),
         )
         encrypted_message = message_box.encrypt(message.json().encode("utf-8"))
         await self.connection_manager.node.set(
@@ -106,8 +106,7 @@ class Client:
         decrypted_message = message_box.decrypt(base64.b64decode(message))
         return Message.parse_raw(decrypted_message)
 
-    async def receive_message_chain(self, username):
-        message_key = self.key_namager.get_initial_chat_key(username, self.user.name)
+    async def receive_message_chain(self, username, message_key):
         message_chain = []
         while True:
             message = await self.receive_message(username, message_key)
@@ -125,14 +124,24 @@ async def main():
     bob_client = Client(User(name="Bob"), connection_manager)
     alice_client = Client(User(name="Alice"), connection_manager)
 
-    for i in range(10):
-        message, message_key = await bob_client.send_message(
-            "Alice", "this is message number {}".format(i)
-        )
-        print(message, message_key)
+    for i in range(5):
+        await bob_client.send_message("Alice", "From Bob number {}".format(i))
+        await alice_client.send_message("Bob", "From Alice number {}".format(i))
 
-    message_chain = await alice_client.receive_message_chain("Bob")
-    print(*message_chain, sep="\n")
+    bob2alice = alice_client.key_namager.get_initial_chat_key("Bob", "Alice")
+    alice2bob = alice_client.key_namager.get_initial_chat_key("Alice", "Bob")
+    bob2alice_chain = await alice_client.receive_message_chain("Bob", bob2alice)
+    alice2bob_chain = await alice_client.receive_message_chain("Bob", alice2bob)
+
+    dialog = list(
+        map(
+            lambda message: message.text,
+            sorted(
+                bob2alice_chain + alice2bob_chain, key=lambda message: message.timestamp
+            ),
+        )
+    )
+    print(*dialog, sep="\n")
 
 
 if __name__ == "__main__":
