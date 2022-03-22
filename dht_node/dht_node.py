@@ -9,7 +9,7 @@ class DHTNode:
         self._port = port
         self._server = Server()
 
-    async def __aenter__(self) -> 'DHTNode':
+    async def __aenter__(self) -> "DHTNode":
         await self.connect()
         return self
 
