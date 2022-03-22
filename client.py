@@ -43,8 +43,8 @@ class KeyManager:
 
 
 class ConnectionManager:
-    def __init__(self):
-        self.node = DHTNode(8469, [("84.201.160.14", 8468)])
+    def __init__(self, node: DHTNode):
+        self.node = node
 
 
 class HistoryManager:
@@ -61,18 +61,18 @@ class HistoryManager:
 class Client:
     def __init__(self, user, connection_manager):
         self.user = user
-        self.history_mannager = HistoryManager()
+        self.history_manager = HistoryManager()
         self.connection_manager = connection_manager
 
     async def connect(self):
         await self.connection_manager.node.connect()
 
     @staticmethod
-    def get_genesis_key(user_src, user_dst):
+    def get_genesis_key(user_src: User, user_dst: User) -> str:
         return hashlib.sha1(user_src.public_key.__bytes__() + user_dst.public_key.__bytes__()).hexdigest()
 
-    async def get_message_key(self, user):
-        message_key = self.history_mannager.get_next_message_key(user)
+    async def get_message_key(self, user: User) -> str:
+        message_key = self.history_manager.get_next_message_key(user)
         if not message_key:
             message_key = self.get_genesis_key(self.user, user)
             messages = await self.read_messages_from_key(user, message_key)
@@ -125,7 +125,7 @@ class Client:
 
         encrypted_message = message_box.encrypt(message.json().encode("utf-8"))
         await self.connection_manager.node.set(message_key, base64.b64encode(encrypted_message))
-        self.history_mannager.update_next_message_key(user, next_message_key)
+        self.history_manager.update_next_message_key(user, next_message_key)
         return message, message_key
 
 
