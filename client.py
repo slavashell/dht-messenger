@@ -2,6 +2,8 @@ import asyncio
 import base64
 import hashlib
 import json
+from collections import namedtuple
+from dataclasses import dataclass
 from datetime import datetime
 
 from nacl.public import Box, PrivateKey, PublicKey
@@ -10,21 +12,34 @@ from pydantic import BaseModel
 from dht_node.dht_node import DHTNode
 
 
+@dataclass
+class User:
+    name: str
+    public_key: PublicKey
+    private_key: PrivateKey = None
+
+
+class Message(BaseModel):
+    text: str
+    next_message_key: str
+    timestamp: float
+
+
 class KeyManager:
-    def __init__(self, useraname):
+    def __init__(self, name):
+        self.name = name
         self.keys = json.load(open("keys.json"))
-        self.private_key = json.load(open("private_keys.json"))[useraname]
+        self.private_key = json.load(open("private_keys.json"))[name]
 
-    def get_public_key(self, username):
-        return PublicKey(bytes.fromhex(self.keys[username]))
-
-    def get_private_key(self):
-        return PrivateKey(bytes.fromhex(self.private_key))
-
-    def get_initial_chat_key(self, user_src, user_dst):
-        return hashlib.sha1(
-            bytes.fromhex(self.keys[user_src]) + bytes.fromhex(self.keys[user_dst])
-        ).hexdigest()
+    def get_user(self, name):
+        if name == self.name:
+            return User(
+                name,
+                PublicKey(bytes.fromhex(self.keys[name])),
+                PrivateKey(bytes.fromhex(self.private_key)),
+            )
+        else:
+            return User(name, PublicKey(bytes.fromhex(self.keys[name])))
 
 
 class ConnectionManager:
@@ -37,52 +52,78 @@ class HistoryManager:
         self.send_keys = {}
         self.receive_keys = {}
 
-    def get_send_key(self, username):
-        return self.send_keys.get(username)
+    def get_next_message_key(self, user):
+        return self.send_keys.get(user.name)
 
-    def update_on_send(self, username, next_message_key):
-        self.send_keys[username] = next_message_key
+    def update_on_send(self, user, next_message_key):
+        self.send_keys[user.name] = next_message_key
 
-    def update_on_receive(self, username, next_message_key):
-        self.receive_keys[username] = next_message_key
-
-
-class User(BaseModel):
-    name: str
-
-
-class Message(BaseModel):
-    text: str
-    next_message_key: str
-    timestamp: float
+    def update_on_receive(self, user, next_message_key):
+        self.receive_keys[user.name] = next_message_key
 
 
 class Client:
     def __init__(self, user, connection_manager):
         self.user = user
-        self.key_namager = KeyManager(user.name)
         self.history_mannager = HistoryManager()
         self.connection_manager = connection_manager
 
     async def connect(self):
         await self.connection_manager.node.connect()
 
-    def get_send_key(self, username):
-        send_key = self.history_mannager.get_send_key(username)
-        if not send_key:
-            self.history_mannager.update_on_send(
-                username,
-                self.key_namager.get_initial_chat_key(self.user.name, username),
-            )
-        return self.history_mannager.get_send_key(username)
+    @staticmethod
+    def get_genesis_key(user_src, user_dst):
+        return hashlib.sha1(
+            user_src.public_key.__bytes__() + user_dst.public_key.__bytes__()
+        ).hexdigest()
 
-    async def send_message(self, username, text):
-        message_key = self.get_send_key(username)
-        message_box = Box(
-            self.key_namager.get_private_key(),
-            self.key_namager.get_public_key(username),
+    async def get_message_key(self, user):
+        message_key = self.history_mannager.get_next_message_key(user)
+        if not message_key:
+            message_key = self.get_genesis_key(self.user, user)
+            messages = await self.read_messages_from_key(user, message_key)
+            if messages:
+                return messages[-1].next_message_key
+        return message_key
+
+    async def read_message(self, user, message_key):
+        message = await self.connection_manager.node.get(message_key)
+        if message is None:
+            return None
+        message_box = Box(self.user.private_key, user.public_key)
+        decrypted_message = message_box.decrypt(base64.b64decode(message))
+        return Message.parse_raw(decrypted_message)
+
+    async def read_messages_from_key(self, user, message_key):
+        messages = []
+        while True:
+            message = await self.read_message(user, message_key)
+            if message is None:
+                break
+            message_key = message.next_message_key
+            messages.append(message)
+        return messages
+
+    async def read_messages(self, user):
+        me2user_key = self.get_genesis_key(self.user, user)
+        user2me_key = self.get_genesis_key(user, self.user)
+        me2user = await self.read_messages_from_key(user, me2user_key)
+        user2me = await self.read_messages_from_key(user, user2me_key)
+        messages = list(
+            map(
+                lambda message: (message.text, message.timestamp),
+                sorted(me2user + user2me, key=lambda message: message.timestamp),
+            )
         )
-        next_message_key = hashlib.sha1(text.encode("utf-8")).hexdigest()
+        return messages
+
+    async def send_message(self, user, text):
+        message_key = await self.get_message_key(user)
+        message_box = Box(self.user.private_key, user.public_key)
+        next_message_key = hashlib.sha1(
+            bytes.fromhex(message_key) + text.encode("utf-8")
+        ).hexdigest()
+
         message = Message(
             text=text,
             next_message_key=next_message_key,
@@ -92,56 +133,29 @@ class Client:
         await self.connection_manager.node.set(
             message_key, base64.b64encode(encrypted_message)
         )
-        self.history_mannager.update_on_send(username, next_message_key)
+        self.history_mannager.update_on_send(user, next_message_key)
         return message, message_key
-
-    async def receive_message(self, username, message_key):
-        message = await self.connection_manager.node.get(message_key)
-        if message is None:
-            return None
-        message_box = Box(
-            self.key_namager.get_private_key(),
-            self.key_namager.get_public_key(username),
-        )
-        decrypted_message = message_box.decrypt(base64.b64decode(message))
-        return Message.parse_raw(decrypted_message)
-
-    async def receive_message_chain(self, username, message_key):
-        message_chain = []
-        while True:
-            message = await self.receive_message(username, message_key)
-            if message is None:
-                break
-            message_key = message.next_message_key
-            message_chain.append(message)
-        return message_chain
 
 
 async def main():
     connection_manager = ConnectionManager()
     await connection_manager.node.connect()
 
-    bob_client = Client(User(name="Bob"), connection_manager)
-    alice_client = Client(User(name="Alice"), connection_manager)
+    key_manager = KeyManager("Bob")
+    Bob = key_manager.get_user("Bob")
+
+    key_manager = KeyManager("Alice")
+    Alice = key_manager.get_user("Alice")
+
+    bob_client = Client(Bob, connection_manager)
+    alice_client = Client(Alice, connection_manager)
 
     for i in range(5):
-        await bob_client.send_message("Alice", "From Bob number {}".format(i))
-        await alice_client.send_message("Bob", "From Alice number {}".format(i))
+        await bob_client.send_message(Alice, "From Bob number {}".format(i))
+        await alice_client.send_message(Bob, "From Alice number {}".format(i))
 
-    bob2alice = alice_client.key_namager.get_initial_chat_key("Bob", "Alice")
-    alice2bob = alice_client.key_namager.get_initial_chat_key("Alice", "Bob")
-    bob2alice_chain = await alice_client.receive_message_chain("Bob", bob2alice)
-    alice2bob_chain = await alice_client.receive_message_chain("Bob", alice2bob)
-
-    dialog = list(
-        map(
-            lambda message: message.text,
-            sorted(
-                bob2alice_chain + alice2bob_chain, key=lambda message: message.timestamp
-            ),
-        )
-    )
-    print(*dialog, sep="\n")
+    messages = await alice_client.read_messages(Bob)
+    print(*messages, sep="\n")
 
 
 if __name__ == "__main__":
