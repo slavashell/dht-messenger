@@ -49,17 +49,13 @@ class ConnectionManager:
 
 class HistoryManager:
     def __init__(self):
-        self.send_keys = {}
-        self.receive_keys = {}
+        self.user2next_message_key = {}
 
     def get_next_message_key(self, user):
-        return self.send_keys.get(user.name)
+        return self.user2next_message_key.get(user.name)
 
-    def update_on_send(self, user, next_message_key):
-        self.send_keys[user.name] = next_message_key
-
-    def update_on_receive(self, user, next_message_key):
-        self.receive_keys[user.name] = next_message_key
+    def update_next_message_key(self, user, next_message_key):
+        self.user2next_message_key[user.name] = next_message_key
 
 
 class Client:
@@ -73,9 +69,7 @@ class Client:
 
     @staticmethod
     def get_genesis_key(user_src, user_dst):
-        return hashlib.sha1(
-            user_src.public_key.__bytes__() + user_dst.public_key.__bytes__()
-        ).hexdigest()
+        return hashlib.sha1(user_src.public_key.__bytes__() + user_dst.public_key.__bytes__()).hexdigest()
 
     async def get_message_key(self, user):
         message_key = self.history_mannager.get_next_message_key(user)
@@ -90,6 +84,7 @@ class Client:
         message = await self.connection_manager.node.get(message_key)
         if message is None:
             return None
+
         message_box = Box(self.user.private_key, user.public_key)
         decrypted_message = message_box.decrypt(base64.b64decode(message))
         return Message.parse_raw(decrypted_message)
@@ -120,20 +115,17 @@ class Client:
     async def send_message(self, user, text):
         message_key = await self.get_message_key(user)
         message_box = Box(self.user.private_key, user.public_key)
-        next_message_key = hashlib.sha1(
-            bytes.fromhex(message_key) + text.encode("utf-8")
-        ).hexdigest()
+        next_message_key = hashlib.sha1(bytes.fromhex(message_key) + text.encode("utf-8")).hexdigest()
 
         message = Message(
             text=text,
             next_message_key=next_message_key,
             timestamp=datetime.timestamp(datetime.utcnow()),
         )
+
         encrypted_message = message_box.encrypt(message.json().encode("utf-8"))
-        await self.connection_manager.node.set(
-            message_key, base64.b64encode(encrypted_message)
-        )
-        self.history_mannager.update_on_send(user, next_message_key)
+        await self.connection_manager.node.set(message_key, base64.b64encode(encrypted_message))
+        self.history_mannager.update_next_message_key(user, next_message_key)
         return message, message_key
 
 
