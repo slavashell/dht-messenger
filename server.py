@@ -13,16 +13,20 @@ try:
     key_manager = KeyManager.from_file(".")
 except:
     key_manager = KeyManager.first_init(".")
-client = Client(User(name="Bob", public_key=key_manager.public_key, private_key=key_manager.private_key), connection_manager)
+client = Client(
+    User(name="Bob", public_key=key_manager.public_key, private_key=key_manager.private_key), connection_manager
+)
 
 
 class Message(BaseModel):
     name: str
     text: str
 
+
 class Chat(BaseModel):
     name: str
     key: str
+
 
 @app.on_event("startup")
 async def app_startup():

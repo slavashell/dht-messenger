@@ -9,16 +9,19 @@ from pydantic import BaseModel
 
 from dht_node.dht_node import DHTNode
 
+
 @dataclass
 class User:
     name: str
     public_key: PublicKey
     private_key: PrivateKey = None
 
+
 class Message(BaseModel):
     text: str
     next_message_key: str
     timestamp: float
+
 
 class ConnectionManager:
     def __init__(self, node: DHTNode):
@@ -110,8 +113,16 @@ async def main():
     connection_manager = ConnectionManager(DHTNode(8469, [("84.201.160.14", 8468)]))
     await connection_manager.node.connect()
 
-    bob = User(name="Bob", public_key="243189f06df4a71acf01f42c6321db7bc3d167ce94437417981275e44a5fdb32", private_key="8d2223beabd887ddbe4b605cd05276ee9ebd7235ef6f62a68659da0952ba176e")
-    alice = User(name="Alice", public_key="0795d9c2ca06ba34ac9a9a9a2a3623e6af935ee48db32551cf599d34b9b0cf45", private_key="d934ad03d4c82ef62216e98bd62066342208fcad9d47872875253b43abf07857")
+    bob = User(
+        name="Bob",
+        public_key="243189f06df4a71acf01f42c6321db7bc3d167ce94437417981275e44a5fdb32",
+        private_key="8d2223beabd887ddbe4b605cd05276ee9ebd7235ef6f62a68659da0952ba176e",
+    )
+    alice = User(
+        name="Alice",
+        public_key="0795d9c2ca06ba34ac9a9a9a2a3623e6af935ee48db32551cf599d34b9b0cf45",
+        private_key="d934ad03d4c82ef62216e98bd62066342208fcad9d47872875253b43abf07857",
+    )
 
     bob_client = Client(bob, connection_manager)
     alice_client = Client(alice, connection_manager)
