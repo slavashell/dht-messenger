@@ -3,8 +3,8 @@ import hashlib
 from datetime import datetime
 
 from nacl.public import Box
-from messenger.models import Message, User
-from messenger.node import DHTNode
+from models import Message, User
+from node import DHTNode
 
 class Client:
     def __init__(self, node: DHTNode):
