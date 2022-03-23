@@ -25,11 +25,11 @@ def app_shutdown():
     client.node.stop()
 
 
-@app.get("/public_key", response_model=Key)
+@app.get("/public_key", response_model=AppKey)
 async def public_key():
     if not key_manager.initialized:
         return Response(status_code=404)
-    return Key(key=KeyManager.key_to_string(key_manager.public_key))
+    return AppKey(key=KeyManager.key_to_string(key_manager.public_key))
 
 
 @app.get("/read_messages")
