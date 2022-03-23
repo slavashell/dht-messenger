@@ -5,7 +5,6 @@ import py_cui
 import requests
 
 from typing import List, Optional
-from messenger.models import AppKey
 
 
 class ClientWrapper:
