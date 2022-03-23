@@ -52,16 +52,8 @@ class ClientWrapper:
 
 
 class Cui:
-    pass
-
-
-class Application:
-    def __init__(self, cui: py_cui.PyCUI, client: ClientWrapper):
+    def __init__(self, cui: py_cui.PyCUI):
         self.cui: py_cui.PyCUI = cui
-        self.client: ClientWrapper = client
-        self.nickname: str = "Vasya"  # TODO
-        self.chats: List[str] = []
-
         self.chats_list_cell = self.cui.add_scroll_menu("Chats", 0, 0, 5, 1)
         self.chat_cell = self.cui.add_scroll_menu("Chat", 0, 1, 5, 7)
         self.input_cell = self.cui.add_text_box("Message:", 5, 0, 1, 8)
@@ -69,12 +61,29 @@ class Application:
         self.registration_cell = self.cui.add_text_box(
             "Login (enter private key if already registered, leave empty otherwise):", 7, 0, 1, 8
         )
-
-        self.input_cell.add_key_command(py_cui.keys.KEY_ENTER, self.send_message)
-        self.add_chat_cell.add_key_command(py_cui.keys.KEY_ENTER, self.add_chat)
-        self.registration_cell.add_key_command(py_cui.keys.KEY_ENTER, self.registration)
-
         self.cui.move_focus(self.registration_cell)
+
+    def set_add_chat_cell_key_command(self, command):
+        self.add_chat_cell.add_key_command(py_cui.keys.KEY_ENTER, command)
+
+    def set_input_cell_key_command(self, command):
+        self.input_cell.add_key_command(py_cui.keys.KEY_ENTER, command)
+
+    def set_registration_cell_key_command(self, command):
+        self.registration_cell.add_key_command(py_cui.keys.KEY_ENTER, command)
+
+
+class Application:
+    def __init__(self, py_cui: py_cui.PyCUI, client: ClientWrapper):
+        self.cui: Cui = Cui(py_cui)
+        self.client: ClientWrapper = client
+        self.nickname: str = "Vasya"  # TODO
+        self.chats: List[str] = []
+
+        self.cui.set_add_chat_cell_key_command(self.add_chat)
+        self.cui.set_input_cell_key_command(self.send_message)
+        self.cui.set_registration_cell_key_command(self.registration)
+
         self.start_background_updating()
         # self.chats_list_cell.set_on_selection_change_event(self.refresh)
         # self.cui.set_on_draw_update_func(self.refresh)
