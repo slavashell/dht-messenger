@@ -4,7 +4,7 @@ import time
 import py_cui
 import requests
 
-from typing import List, Union, Optional
+from typing import List, Optional
 from messenger.models import AppKey
 
 
@@ -38,8 +38,11 @@ class ClientWrapper:
         response.raise_for_status()
 
     def register_user(self, private_key: Optional[str] = None):
-        data = AppKey(key=private_key) if private_key is not None else None
-        response = requests.post(url=self.url + "register_user", data=data)
+        data = None
+        if private_key is not None:
+            data = {"key": private_key}
+
+        response = requests.post(url=self.url + "register_user", json=data)
         response.raise_for_status()
 
     def get_public_key(self) -> Optional[str]:
