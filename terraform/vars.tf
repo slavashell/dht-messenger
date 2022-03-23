@@ -1,19 +1,19 @@
 variable "yc_folder" {
-  type = string
+  type        = string
   description = "Yandex Cloud folder"
 }
 
 variable "yc_cloud" {
-  type = string
+  type        = string
   description = "Yandex Cloud id"
 }
 
 variable "yc_token" {
-  type = string
+  type        = string
   description = "Yandex Cloud OAuth token"
 }
 
 variable "user" {
-  type = string
+  type        = string
   description = "$USER"
 }

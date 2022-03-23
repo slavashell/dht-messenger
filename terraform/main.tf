@@ -7,9 +7,9 @@ terraform {
 }
 
 provider "yandex" {
-  token     = "${var.yc_token}"
-  cloud_id  = "${var.yc_cloud}"
-  folder_id = "${var.yc_folder}"
+  token     = var.yc_token
+  cloud_id  = var.yc_cloud
+  folder_id = var.yc_folder
   zone      = "ru-central1-a"
 }
 
@@ -40,9 +40,9 @@ resource "yandex_compute_instance" "dht-messenger" {
 
   metadata = {
     user_data = templatefile(
-      "${path.module}/files/user-data.tpl",
+      "${path.module}/cloud_config.yaml",
       {
-        user = var.user
+        user    = var.user
         ssh-key = "${local.public_ssh_key}"
       }
     )
