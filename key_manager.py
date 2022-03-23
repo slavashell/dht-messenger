@@ -10,6 +10,10 @@ class KeyManager:
         self._keys = {} if public_keys is None else public_keys
 
     @staticmethod
+    def key_to_string(key: PrivateKey) -> str:
+        return key.__bytes__().hex()
+
+    @staticmethod
     def from_file(path: str) -> 'KeyManager':
         with open(path + '/private.key', 'r') as private_key_file:
             private_key = private_key_file.readlines()
@@ -21,8 +25,9 @@ class KeyManager:
 
     @staticmethod
     def first_init(path: str) -> 'KeyManager':
-        private_key = PrivateKey.generate()
-        public_key = private_key.public_key
+        generated_key = PrivateKey.generate()
+        private_key = KeyManager.key_to_string(generated_key)
+        public_key = KeyManager.key_to_string(generated_key.public_key)
         with open(path + '/private.key', 'w') as private_key_file:
             private_key_file.write(private_key)
         with open(path + '/public.key', 'w') as public_key_file:
