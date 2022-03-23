@@ -20,7 +20,7 @@ class KeyManager:
         self._cache_dir = cache_dir
 
     @staticmethod
-    def key_to_string(key: PrivateKey) -> str:
+    def key_to_string(key: tp.Union[PrivateKey, PublicKey]) -> str:
         return key.__bytes__().hex()
 
     @staticmethod
@@ -37,11 +37,11 @@ class KeyManager:
         return KeyManager(private_key, public_key, keys)
 
     @property
-    def private_key(self) -> PublicKey:
+    def private_key(self) -> PrivateKey:
         return PrivateKey(bytes.fromhex(self._private_key))
 
     @property
-    def public_key(self) -> PrivateKey:
+    def public_key(self) -> PublicKey:
         return PublicKey(bytes.fromhex(self._public_key))
 
     @property

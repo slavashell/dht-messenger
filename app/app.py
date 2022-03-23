@@ -4,7 +4,8 @@ import time
 import py_cui
 import requests
 
-from typing import List
+from typing import List, Union, Optional
+from messenger.models import AppKey
 
 
 class ClientWrapper:
@@ -36,6 +37,21 @@ class ClientWrapper:
         response = requests.post(url=self.url + "add_chat", json=data)
         response.raise_for_status()
 
+    def register_user(self, private_key: Optional[str] = None):
+        data = AppKey(key=private_key) if private_key is not None else None
+        response = requests.post(url=self.url + "register_user", data=data)
+        response.raise_for_status()
+
+    def get_public_key(self) -> Optional[str]:
+        response = requests.get(url=self.url + "public_key")
+        if response.status_code != 200:
+            return None
+        return response.json()["key"]
+
+
+class Cui:
+    pass
+
 
 class Application:
     def __init__(self, cui: py_cui.PyCUI, client: ClientWrapper):
@@ -44,16 +60,25 @@ class Application:
         self.nickname: str = "Vasya"  # TODO
         self.chats: List[str] = []
 
-        self.chats_list_cell = self.cui.add_scroll_menu("Chats", 0, 0, row_span=5, column_span=1)
-        self.chat_cell = self.cui.add_scroll_menu("Chat", 0, 1, 5, 5)
-        self.input_cell = self.cui.add_text_box("Message:", 5, 1, 1, 5)
-        self.add_chat_cell = self.cui.add_text_box("New chat:", 7, 1, 1, 5)
+        self.chats_list_cell = self.cui.add_scroll_menu("Chats", 0, 0, 5, 1)
+        self.chat_cell = self.cui.add_scroll_menu("Chat", 0, 1, 5, 7)
+        self.input_cell = self.cui.add_text_box("Message:", 5, 0, 1, 8)
+        self.add_chat_cell = self.cui.add_text_box("New chat (enter name and public key):", 6, 0, 1, 8)
+        self.registration_cell = self.cui.add_text_box(
+            "Login (enter private key if already registered, leave empty otherwise):", 7, 0, 1, 8
+        )
+
         self.input_cell.add_key_command(py_cui.keys.KEY_ENTER, self.send_message)
         self.add_chat_cell.add_key_command(py_cui.keys.KEY_ENTER, self.add_chat)
-        self.cui.move_focus(self.input_cell)
+        self.registration_cell.add_key_command(py_cui.keys.KEY_ENTER, self.registration)
+
+        self.cui.move_focus(self.registration_cell)
+        self.start_background_updating()
         # self.chats_list_cell.set_on_selection_change_event(self.refresh)
         # self.cui.set_on_draw_update_func(self.refresh)
-        self.start_background_updating()
+
+    def set_gui(self):
+        pass
 
     def send_message(self):
         message = self.input_cell.get()
@@ -85,7 +110,12 @@ class Application:
         self.chats_list_cell.set_selected(chat)
 
     def refresh_chat(self):
-        name = self.chats_list_cell.get()
+        try:
+            name = self.chats_list_cell.get()
+        except:
+            self.chat_cell.clear()
+            return
+
         if not name:
             self.chat_cell.clear()
             return
@@ -106,7 +136,12 @@ class Application:
             self.chat_cell.add_item(message)
 
     def add_chat(self):
-        name, key = self.add_chat_cell.get().split(" ", 1)
+        try:
+            name, key = self.add_chat_cell.get().split(" ", 1)
+        except ValueError as e:
+            # TODO: logging
+            return
+
         if not name or not key:
             return
 
@@ -122,6 +157,19 @@ class Application:
     def update_chats_list(self):
         pass
 
+    def registration(self):
+        private_key = self.registration_cell.get()
+        if private_key:
+            self.client.register_user(private_key)
+        else:
+            self.client.register_user(None)
+
+        public_key = self.client.get_public_key()
+        if public_key is None:
+            return
+
+        self.registration_cell.set_text("Public key: {}".format(public_key))
+
     def refresh(self):
         while True:
             self.refresh_chats_list()
@@ -129,7 +177,7 @@ class Application:
 
 
 def main():
-    root = py_cui.PyCUI(8, 6)
+    root = py_cui.PyCUI(10, 8, auto_focus_buttons=False)
     root.set_refresh_timeout(1)
     root.set_title("Mock")
 
