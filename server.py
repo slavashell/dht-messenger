@@ -41,9 +41,11 @@ def app_shutdown():
     client.connection_manager.node.stop()
 
 
-@app.get("/healthcheck")
-async def healthcheck():
-    return 200
+@app.get("/public_key", response_model=Key)
+async def public_key():
+    if not key_manager.initialized:
+        return Response(status_code=404)
+    return Key(key=KeyManager.key_to_string(key_manager.public_key))
 
 
 @app.get("/read_messages")
