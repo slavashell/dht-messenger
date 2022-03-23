@@ -1,7 +1,7 @@
 import typing as tp
 import json
 
-from nacl.public import PrivateKey
+from nacl.public import PrivateKey, PublicKey
 
 class KeyManager:
 
@@ -41,15 +41,15 @@ class KeyManager:
         return KeyManager(private_key, public_key)
 
     @property
-    def private_key(self) -> str:
-        return self._private_key
+    def private_key(self) -> PublicKey:
+        return PrivateKey(bytes.fromhex(self._private_key))
 
     @property
-    def public_key(self) -> str:
-        return self._public_key
+    def public_key(self) -> PrivateKey:
+        return PublicKey(bytes.fromhex(self._public_key))
 
-    def key_by_name(self, name: str) -> tp.Optional[str]:
-        return self._keys.get(name, None)
+    def key_by_name(self, name: str) -> PublicKey:
+        return PublicKey(bytes.fromhex(self._keys[name]))
 
     def add_key(self, name: str, key: str) -> None:
         self._keys[name] = key
