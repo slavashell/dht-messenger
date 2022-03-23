@@ -1,51 +1,27 @@
-import asyncio
+import threading
+import time
 
 import py_cui
-import time
-import threading
-from typing import List, Union, Dict
 import requests
 
 
-# Mock
-# class Client:
-#     def __init__(self):
-#         self.chats: Dict[str, List[str]] = {
-#             'DSRub': ['Hello, Gershon, it\'s me, DSRub!', 'Hello, bruh!'],
-#             'Self': ['It\'s my secret chat'],
-#         }
-#
-#     def get_chat(self, companion: str) -> Union[List[str], None]:
-#         if companion not in self.chats:
-#             return None
-#         return self.chats[companion]
-#
-#     def get_companions(self) -> List[str]:
-#         return sorted([*self.chats])
-#
-#     def send_message(self, message: str, companion: str):
-#         if companion not in self.chats:
-#             self.chats[companion] = []
-#
-#         self.chats[companion].append(message)
-
 class ClientWrapper:
     def __init__(self, host: str, port: str):
-        self.url = 'http://' + host + ':' + port + '/'
+        self.url = "http://{}:{}/".format(host, port)
 
     def send_message(self, name: str, text: str):
         data = {
-            'name': name,
-            'text': text,
+            "name": name,
+            "text": text,
         }
-        response = requests.post(url=self.url + 'send_message', json=data)
+        response = requests.post(url=self.url + "send_message", json=data)
         response.raise_for_status()
 
     def read_messages(self, name: str):
         params = {
-            'name': name,
+            "name": name,
         }
-        response = requests.get(url=self.url + 'read_messages', params=params)
+        response = requests.get(url=self.url + "read_messages", params=params)
         return response.json()
 
 
@@ -53,11 +29,11 @@ class Application:
     def __init__(self, cui: py_cui.PyCUI, client: ClientWrapper):
         self.cui = cui
         self.client = client
-        self.nickname = 'Vasya'  # TODO
+        self.nickname = "Vasya"  # TODO
 
-        self.chats_list_cell = self.cui.add_scroll_menu('Chats', 0, 0, row_span=5, column_span=1)
-        self.chat_cell = self.cui.add_scroll_menu('Chat', 0, 1, 5, 5)
-        self.input_cell = self.cui.add_text_box('Message:', 5, 1, 1, 5)
+        self.chats_list_cell = self.cui.add_scroll_menu("Chats", 0, 0, row_span=5, column_span=1)
+        self.chat_cell = self.cui.add_scroll_menu("Chat", 0, 1, 5, 5)
+        self.input_cell = self.cui.add_text_box("Message:", 5, 1, 1, 5)
         self.input_cell.add_key_command(py_cui.keys.KEY_ENTER, self.send_message)
         self.cui.move_focus(self.input_cell)
         # self.chats_list_cell.set_on_selection_change_event(self.refresh)
@@ -76,13 +52,13 @@ class Application:
 
     def refresh_chats_list(self):
         self.refresh_chat()
-        companions = ['Alice']
+        companions = ["Alice"]
         if not companions:
             self.chats_list_cell.clear()
             return
 
         shown_chats = self.chats_list_cell.get_item_list()
-        current_chats = ['Alice']
+        current_chats = ["Alice"]
         if shown_chats == current_chats:
             return
 
@@ -98,7 +74,7 @@ class Application:
             self.chat_cell.clear()
             return
 
-        self.chat_cell.set_title('Chat with {}'.format(companion))
+        self.chat_cell.set_title("Chat with {}".format(companion))
         shown_count = len(self.chat_cell.get_item_list())
 
         messages = self.client.read_messages(companion)
@@ -107,8 +83,8 @@ class Application:
             return
 
         self.chat_cell.clear()
-        for m in messages:
-            self.chat_cell.add_item(m)
+        for message in messages:
+            self.chat_cell.add_item(message)
 
     def start_background_updating(self):
         operation_thread = threading.Thread(target=self.refresh, daemon=True)
@@ -126,11 +102,11 @@ class Application:
 def main():
     root = py_cui.PyCUI(8, 6)
     root.set_refresh_timeout(1)
-    root.set_title('Mock')
+    root.set_title("Mock")
 
-    s = Application(root, ClientWrapper('localhost', '8000'))
+    Application(root, ClientWrapper("localhost", "8000"))
     root.start()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

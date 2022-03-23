@@ -92,15 +92,14 @@ class Client:
 
     async def send_message(self, user, text):
         message_key = await self.get_message_key(user)
-        message_box = Box(self.user.private_key, user.public_key)
         next_message_key = hashlib.sha1(bytes.fromhex(message_key) + text.encode("utf-8")).hexdigest()
-
         message = Message(
             text=text,
             next_message_key=next_message_key,
             timestamp=datetime.timestamp(datetime.utcnow()),
         )
 
+        message_box = Box(self.user.private_key, user.public_key)
         encrypted_message = message_box.encrypt(message.json().encode("utf-8"))
         await self.connection_manager.node.set(message_key, base64.b64encode(encrypted_message))
         self.history_manager.update_next_message_key(user, next_message_key)
@@ -108,7 +107,7 @@ class Client:
 
 
 async def main():
-    connection_manager = ConnectionManager()
+    connection_manager = ConnectionManager(DHTNode(8469, [("84.201.160.14", 8468)]))
     await connection_manager.node.connect()
 
     bob = User(name="Bob", public_key="243189f06df4a71acf01f42c6321db7bc3d167ce94437417981275e44a5fdb32", private_key="8d2223beabd887ddbe4b605cd05276ee9ebd7235ef6f62a68659da0952ba176e")
