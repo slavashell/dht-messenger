@@ -125,12 +125,12 @@ class Application:
     def refresh(self):
         while True:
             self.refresh_chats_list()
-            time.sleep(5)
+            time.sleep(1)
 
 
 def main():
     root = py_cui.PyCUI(8, 6)
-    root.set_refresh_timeout(5)
+    root.set_refresh_timeout(1)
     root.set_title("Mock")
 
     Application(root, ClientWrapper("localhost", "8000"))

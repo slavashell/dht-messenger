@@ -7,7 +7,7 @@ class DHTNode:
     def __init__(self, port: int, nodes: tp.List[tp.Tuple[str, int]]) -> None:
         self._nodes = nodes
         self._port = port
-        self._server = Server(ksize=1)
+        self._server = Server()
 
     async def __aenter__(self) -> "DHTNode":
         await self.connect()
