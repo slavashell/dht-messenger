@@ -1,6 +1,0 @@
-requests
-kademlia
-asyncio
-fastapi
-py-cui
-PyNaCl
