@@ -22,6 +22,8 @@ class ClientWrapper:
             "name": name,
         }
         response = requests.get(url=self.url + "read_messages", params=params)
+        if response.status_code != 200:
+            return None
         return response.json()
 
 
@@ -78,6 +80,9 @@ class Application:
         shown_count = len(self.chat_cell.get_item_list())
 
         messages = self.client.read_messages(companion)
+
+        if messages is None:
+            return
 
         if shown_count == len(messages):
             return
