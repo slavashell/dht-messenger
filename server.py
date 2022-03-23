@@ -2,12 +2,18 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from dht_node.dht_node import DHTNode
-from client import ConnectionManager, Client, User, KeyManager
+from client import ConnectionManager, Client, User
+from key_manager import KeyManager
 
 app = FastAPI()
 connection_manager = ConnectionManager(DHTNode(8469, [("84.201.160.14", 8468)]))
-key_manager = KeyManager('Bob')
-client = Client(key_manager.get_user('Bob'), connection_manager)
+
+# FIXME(slavashel): move this init to server handlers
+try:
+    key_manager = KeyManager.from_file(".")
+except:
+    key_manager = KeyManager.first_init(".")
+client = Client(User(name="Bob", public_key=key_manager.public_key, private_key=key_manager.private_key), connection_manager)
 
 
 class Message(BaseModel):
@@ -28,18 +34,6 @@ def app_shutdown():
 @app.get("/healthcheck")
 async def healthcheck():
     return 200
-
-
-# @app.get("/read")
-# async def read(message_key: str):
-#     result = await connection_manager.get(message_key)
-#     return {"message": result}
-#
-#
-# @app.post("/write")
-# async def write(message: Message):
-#     await connection_manager.set(message.key, message.value)
-#     return 200
 
 
 @app.get("/read_messages")
