@@ -1,0 +1,8 @@
+spec:
+  containers:
+  - image: dimarub2000/dht-messenger:latest
+    name: dht-messenger
+    securityContext:
+      privileged: false
+    stdin: false
+    tty: false
