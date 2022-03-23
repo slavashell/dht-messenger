@@ -26,9 +26,9 @@ class KeyManager:
     @staticmethod
     def from_file(path: str) -> "KeyManager":
         with open(path + "/" + KeyManager.PRIVATE_KEY, "r") as private_key_file:
-            private_key = private_key_file.readlines()
+            private_key = private_key_file.readline()
         with open(path + "/" + KeyManager.PUBLIC_KEY, "r") as public_key_file:
-            public_key = public_key_file.readlines()
+            public_key = public_key_file.readline()
         cache_path = path + "/" + KeyManager.CACHE_FILE
         keys = None
         if os.path.isfile(cache_path):

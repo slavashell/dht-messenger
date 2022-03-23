@@ -14,7 +14,7 @@ class DHTNode:
         return self
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
-        await self.client.quit()
+        await self.stop()
 
     async def connect(self) -> None:
         await self._server.listen(self._port)
