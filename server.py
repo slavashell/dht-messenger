@@ -20,6 +20,9 @@ class Message(BaseModel):
     name: str
     text: str
 
+class Chat(BaseModel):
+    name: str
+    key: str
 
 @app.on_event("startup")
 async def app_startup():
@@ -49,4 +52,10 @@ async def read_messages(name: str):
 async def send_message(message: Message):
     user_key = key_manager.key_by_name(message.name)
     await client.send_message(User(name=message.name, public_key=user_key), message.text)
+    return 200
+
+
+@app.post("/add_chat")
+async def add_chat(chat: Chat):
+    key_manager.add_key(chat.name, chat.key)
     return 200
