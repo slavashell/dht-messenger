@@ -40,10 +40,13 @@ class HistoryManager:
 
 
 class Client:
-    def __init__(self, user, connection_manager):
-        self.user = user
+    def __init__(self, connection_manager):
+        self.user = None
         self.history_manager = HistoryManager()
         self.connection_manager = connection_manager
+
+    def set_user(self, user):
+        self.user = user
 
     async def connect(self):
         await self.connection_manager.node.connect()

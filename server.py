@@ -8,14 +8,13 @@ from key_manager import KeyManager
 app = FastAPI()
 connection_manager = ConnectionManager(DHTNode(8469, [("84.201.160.14", 8468)]))
 
-# FIXME(slavashel): move this init to server handlers
+client = Client(connection_manager)
+
 try:
     key_manager = KeyManager.from_file(".")
+    client.set_user(User(name="Bob", public_key=key_manager.public_key, private_key=key_manager.private_key))
 except:
-    key_manager = KeyManager.first_init(".")
-client = Client(
-    User(name="Bob", public_key=key_manager.public_key, private_key=key_manager.private_key), connection_manager
-)
+    key_manager = KeyManager("", "")
 
 
 class Message(BaseModel):
@@ -25,6 +24,10 @@ class Message(BaseModel):
 
 class Chat(BaseModel):
     name: str
+    key: str
+
+
+class Key(BaseModel):
     key: str
 
 
@@ -45,6 +48,8 @@ async def healthcheck():
 
 @app.get("/read_messages")
 async def read_messages(name: str):
+    if not key_manager.initialized:
+        return Response(status_code=403)
     try:
         user_key = key_manager.key_by_name(name)
     except KeyError:
@@ -54,6 +59,8 @@ async def read_messages(name: str):
 
 @app.post("/send_message")
 async def send_message(message: Message):
+    if not key_manager.initialized:
+        return Response(status_code=403)
     user_key = key_manager.key_by_name(message.name)
     await client.send_message(User(name=message.name, public_key=user_key), message.text)
     return 200
@@ -61,5 +68,14 @@ async def send_message(message: Message):
 
 @app.post("/add_chat")
 async def add_chat(chat: Chat):
+    if not key_manager.initialized:
+        return Response(status_code=403)
     key_manager.add_key(chat.name, chat.key)
+    return 200
+
+
+@app.post("/register_user")
+async def register_user(key: Key = None):
+    key_manager.init(key.key if key is not None else None)
+    client.set_user(User(name="Bob", public_key=key_manager.public_key, private_key=key_manager.private_key))
     return 200
