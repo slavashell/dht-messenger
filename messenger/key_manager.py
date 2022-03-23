@@ -63,7 +63,6 @@ class KeyManager:
         self.save_keys(private_key, public_key)
 
     def key_by_name(self, name: str) -> PublicKey:
-        print(self._keys)
         return PublicKey(bytes.fromhex(self._keys[name]))
 
     def add_key(self, name: str, key: str) -> None:
