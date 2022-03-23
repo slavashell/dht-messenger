@@ -1,9 +1,9 @@
-from dht.node import DHTNode
 from fastapi import FastAPI, Response
 
 from messenger.client import Client
 from messenger.key_manager import KeyManager
 from messenger.models import AppChat, AppKey, AppMessage, User
+from messenger.node import DHTNode
 
 app = FastAPI()
 client = Client(DHTNode(8469, [("84.201.160.14", 8468)]))

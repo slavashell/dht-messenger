@@ -2,10 +2,9 @@ import base64
 import hashlib
 from datetime import datetime
 
-from dht.node import DHTNode
 from nacl.public import Box
 from messenger.models import Message, User
-
+from messenger.node import DHTNode
 
 class Client:
     def __init__(self, node: DHTNode):
