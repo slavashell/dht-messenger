@@ -1,7 +1,6 @@
 import asyncio
 import base64
 import hashlib
-import json
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -10,36 +9,16 @@ from pydantic import BaseModel
 
 from dht_node.dht_node import DHTNode
 
-
 @dataclass
 class User:
     name: str
     public_key: PublicKey
     private_key: PrivateKey = None
 
-
 class Message(BaseModel):
     text: str
     next_message_key: str
     timestamp: float
-
-
-class KeyManager:
-    def __init__(self, name):
-        self.name = name
-        self.keys = json.load(open("keys.json"))
-        self.private_key = json.load(open("private_keys.json"))[name]
-
-    def get_user(self, name):
-        if name == self.name:
-            return User(
-                name,
-                PublicKey(bytes.fromhex(self.keys[name])),
-                PrivateKey(bytes.fromhex(self.private_key)),
-            )
-        else:
-            return User(name, PublicKey(bytes.fromhex(self.keys[name])))
-
 
 class ConnectionManager:
     def __init__(self, node: DHTNode):
@@ -131,20 +110,17 @@ async def main():
     connection_manager = ConnectionManager(DHTNode(8469, [("84.201.160.14", 8468)]))
     await connection_manager.node.connect()
 
-    key_manager = KeyManager("Bob")
-    Bob = key_manager.get_user("Bob")
+    bob = User(name="Bob", public_key="243189f06df4a71acf01f42c6321db7bc3d167ce94437417981275e44a5fdb32", private_key="8d2223beabd887ddbe4b605cd05276ee9ebd7235ef6f62a68659da0952ba176e")
+    alice = User(name="Alice", public_key="0795d9c2ca06ba34ac9a9a9a2a3623e6af935ee48db32551cf599d34b9b0cf45", private_key="d934ad03d4c82ef62216e98bd62066342208fcad9d47872875253b43abf07857")
 
-    key_manager = KeyManager("Alice")
-    Alice = key_manager.get_user("Alice")
-
-    bob_client = Client(Bob, connection_manager)
-    alice_client = Client(Alice, connection_manager)
+    bob_client = Client(bob, connection_manager)
+    alice_client = Client(alice, connection_manager)
 
     for i in range(5):
-        await bob_client.send_message(Alice, "From Bob number {}".format(i))
-        await alice_client.send_message(Bob, "From Alice number {}".format(i))
+        await bob_client.send_message(alice, "From Bob number {}".format(i))
+        await alice_client.send_message(bob, "From Alice number {}".format(i))
 
-    messages = await alice_client.read_messages(Bob)
+    messages = await alice_client.read_messages(bob)
     print(*messages, sep="\n")
 
 

@@ -1,13 +1,19 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from pydantic import BaseModel
 
 from dht_node.dht_node import DHTNode
-from client import ConnectionManager, Client, User, KeyManager
+from client import ConnectionManager, Client, User
+from key_manager import KeyManager
 
 app = FastAPI()
 connection_manager = ConnectionManager(DHTNode(8469, [("84.201.160.14", 8468)]))
-key_manager = KeyManager("Bob")
-client = Client(key_manager.get_user("Bob"), connection_manager)
+
+# FIXME(slavashel): move this init to server handlers
+try:
+    key_manager = KeyManager.from_file(".")
+except:
+    key_manager = KeyManager.first_init(".")
+client = Client(User(name="Bob", public_key=key_manager.public_key, private_key=key_manager.private_key), connection_manager)
 
 
 class Message(BaseModel):
@@ -32,12 +38,15 @@ async def healthcheck():
 
 @app.get("/read_messages")
 async def read_messages(name: str):
-    user = key_manager.get_user(name)
-    return await client.read_messages(user)
+    try:
+        user_key = key_manager.key_by_name(name)
+    except KeyError:
+        return Response(status_code=404, content=f"User {name} not found")
+    return await client.read_messages(User(name=name, public_key=user_key))
 
 
 @app.post("/send_message")
 async def send_message(message: Message):
-    user = key_manager.get_user(message.name)
-    await client.send_message(user, message.text)
+    user_key = key_manager.key_by_name(message.name)
+    await client.send_message(User(name=message.name, public_key=user_key), message.text)
     return 200
