@@ -6,8 +6,8 @@ from client import ConnectionManager, Client, User, KeyManager
 
 app = FastAPI()
 connection_manager = ConnectionManager(DHTNode(8469, [("84.201.160.14", 8468)]))
-key_manager = KeyManager('Bob')
-client = Client(key_manager.get_user('Bob'), connection_manager)
+key_manager = KeyManager("Bob")
+client = Client(key_manager.get_user("Bob"), connection_manager)
 
 
 class Message(BaseModel):
@@ -28,18 +28,6 @@ def app_shutdown():
 @app.get("/healthcheck")
 async def healthcheck():
     return 200
-
-
-# @app.get("/read")
-# async def read(message_key: str):
-#     result = await connection_manager.get(message_key)
-#     return {"message": result}
-#
-#
-# @app.post("/write")
-# async def write(message: Message):
-#     await connection_manager.set(message.key, message.value)
-#     return 200
 
 
 @app.get("/read_messages")
