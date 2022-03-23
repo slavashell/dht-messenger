@@ -36,6 +36,7 @@ resource "yandex_compute_instance" "dht-messenger" {
 
   network_interface {
     subnet_id = yandex_vpc_subnet.subnet.id
+    nat       = true
   }
 
   metadata = {
