@@ -1,11 +1,12 @@
 import typing as tp
 import json
 import os.path
+import os
 
 from nacl.public import PrivateKey, PublicKey
 
 
-class KeyManager:
+class UserManager:
 
     CACHE_FILE = "cached_keys.json"
     PRIVATE_KEY = "private.key"
@@ -24,17 +25,17 @@ class KeyManager:
         return key.__bytes__().hex()
 
     @staticmethod
-    def from_file(path: str) -> "KeyManager":
-        with open(path + "/" + KeyManager.PRIVATE_KEY, "r") as private_key_file:
+    def from_file(path: str) -> "UserManager":
+        with open(path + "/" + UserManager.PRIVATE_KEY, "r") as private_key_file:
             private_key = private_key_file.readline()
-        with open(path + "/" + KeyManager.PUBLIC_KEY, "r") as public_key_file:
+        with open(path + "/" + UserManager.PUBLIC_KEY, "r") as public_key_file:
             public_key = public_key_file.readline()
-        cache_path = path + "/" + KeyManager.CACHE_FILE
+        cache_path = path + "/" + UserManager.CACHE_FILE
         keys = None
         if os.path.isfile(cache_path):
-            with open(path + "/" + KeyManager.CACHE_FILE) as cached_keys:
+            with open(path + "/" + UserManager.CACHE_FILE) as cached_keys:
                 keys = json.load(cached_keys)
-        return KeyManager(private_key, public_key, keys)
+        return UserManager(private_key, public_key, keys)
 
     @property
     def private_key(self) -> PublicKey:
@@ -51,21 +52,27 @@ class KeyManager:
     def save_keys(self, private_key: str, public_key: str) -> None:
         self._private_key = private_key
         self._public_key = public_key
-        with open(self._cache_dir + "/" + KeyManager.PRIVATE_KEY, "w") as private_key_file:
+        with open(self._cache_dir + "/" + UserManager.PRIVATE_KEY, "w") as private_key_file:
             private_key_file.write(private_key)
-        with open(self._cache_dir + "/" + KeyManager.PUBLIC_KEY, "w") as public_key_file:
+        with open(self._cache_dir + "/" + UserManager.PUBLIC_KEY, "w") as public_key_file:
             public_key_file.write(public_key)
 
     def init(self, key: tp.Optional[str]) -> None:
         new_key = PrivateKey.generate() if key is None else PrivateKey(bytes.fromhex(key))
-        private_key = KeyManager.key_to_string(new_key)
-        public_key = KeyManager.key_to_string(new_key.public_key)
+        private_key = UserManager.key_to_string(new_key)
+        public_key = UserManager.key_to_string(new_key.public_key)
         self.save_keys(private_key, public_key)
+        cache_file = self._cache_dir + "/" + UserManager.CACHE_FILE
+        if os.path.exists(cache_file):
+            os.remove(cache_file)
 
     def key_by_name(self, name: str) -> PublicKey:
         return PublicKey(bytes.fromhex(self._keys[name]))
 
     def add_key(self, name: str, key: str) -> None:
         self._keys[name] = key
-        with open(self._cache_dir + "/" + KeyManager.CACHE_FILE, "w") as cache_file:
+        with open(self._cache_dir + "/" + UserManager.CACHE_FILE, "w") as cache_file:
             json.dump(self._keys, cache_file)
+
+    def get_chat_list(self) -> tp.List[str]:
+        return list(self._keys.keys())
