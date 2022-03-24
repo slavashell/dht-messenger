@@ -6,6 +6,7 @@ from nacl.public import Box
 from models import Message, User
 from node import DHTNode
 
+
 class Client:
     def __init__(self, node: DHTNode):
         self.user = None
