@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from nacl.public import PrivateKey, PublicKey
 from pydantic import BaseModel
+import typing as tp
 
 
 @dataclass
@@ -28,3 +29,7 @@ class AppChat(BaseModel):
 
 class AppKey(BaseModel):
     key: str
+
+
+class UserChats(BaseModel):
+    chats: tp.List[str]
