@@ -1,6 +1,6 @@
 # dht-messenger
 
-Просто мессенджер на базе DHT Kademlia
+Простой мессенджер на базе DHT Kademlia
 
 # Приницип работы
 
