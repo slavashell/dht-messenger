@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, Response
 
 from client import Client
@@ -7,6 +9,13 @@ from node import DHTNode
 
 app = FastAPI()
 client = Client(DHTNode(8469, [("84.201.160.14", 8468)]))
+
+handler = logging.StreamHandler()
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+log = logging.getLogger("kademlia")
+log.addHandler(handler)
+log.setLevel(logging.DEBUG)
 
 try:
     key_manager = KeyManager.from_file(".")
