@@ -62,7 +62,6 @@ class Application:
     def __init__(self, cui: py_cui.PyCUI, client: ClientWrapper):
         self.cui: py_cui.PyCUI = cui
         self.client: ClientWrapper = client
-        self.nickname: str = "Vasya"  # TODO
         self.chats: List[str] = []
 
         self.chats_list_cell = self.cui.add_scroll_menu("Chats", 0, 0, 5, 1)
@@ -190,7 +189,7 @@ class Application:
 def main():
     root = py_cui.PyCUI(10, 8, auto_focus_buttons=False)
     root.set_refresh_timeout(1)
-    root.set_title("Mock")
+    root.set_title("DHT-Messenger")
 
     Application(root, ClientWrapper("localhost", "8000"))
     root.start()
