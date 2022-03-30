@@ -1,3 +1,4 @@
+import sys
 import threading
 import time
 
@@ -50,16 +51,17 @@ class ClientWrapper:
             return None
         return response.json()["key"]
 
-
-class Cui:
-    pass
+    def get_chats(self) -> Optional[List[str]]:
+        response = requests.get(url=self.url + "chats")
+        if response.status_code != 200:
+            return None
+        return response.json()["chats"]
 
 
 class Application:
     def __init__(self, cui: py_cui.PyCUI, client: ClientWrapper):
         self.cui: py_cui.PyCUI = cui
         self.client: ClientWrapper = client
-        self.nickname: str = "Vasya"  # TODO
         self.chats: List[str] = []
 
         self.chats_list_cell = self.cui.add_scroll_menu("Chats", 0, 0, 5, 1)
@@ -76,11 +78,6 @@ class Application:
 
         self.cui.move_focus(self.registration_cell)
         self.start_background_updating()
-        # self.chats_list_cell.set_on_selection_change_event(self.refresh)
-        # self.cui.set_on_draw_update_func(self.refresh)
-
-    def set_gui(self):
-        pass
 
     def send_message(self):
         message = self.input_cell.get()
@@ -140,24 +137,30 @@ class Application:
     def add_chat(self):
         try:
             name, key = self.add_chat_cell.get().split(" ", 1)
-        except ValueError as e:
-            # TODO: logging
+        except ValueError:
+            print("Unexpected input format: {}".format(self.add_chat_cell.get()), file=sys.stderr)
             return
 
         if not name or not key:
             return
 
-        self.client.add_chat(name, key)  # TODO: try/except
+        try:
+            self.client.add_chat(name, key)
+        except requests.HTTPError:
+            return
+
         self.add_chat_cell.clear()
         self.chats.append(name)
         self.refresh_chats_list()
 
-    def start_background_updating(self):
-        operation_thread = threading.Thread(target=self.refresh, daemon=True)
-        operation_thread.start()
+    def init_chats_list(self):
+        chats = self.client.get_chats()
+        if chats is None:
+            return
 
-    def update_chats_list(self):
-        pass
+        for c in chats:
+            self.chats.append(c)
+        self.refresh_chats_list()
 
     def registration(self):
         private_key = self.registration_cell.get()
@@ -171,6 +174,11 @@ class Application:
             return
 
         self.registration_cell.set_text("Public key: {}".format(public_key))
+        self.init_chats_list()
+
+    def start_background_updating(self):
+        operation_thread = threading.Thread(target=self.refresh, daemon=True)
+        operation_thread.start()
 
     def refresh(self):
         while True:
@@ -181,7 +189,7 @@ class Application:
 def main():
     root = py_cui.PyCUI(10, 8, auto_focus_buttons=False)
     root.set_refresh_timeout(1)
-    root.set_title("Mock")
+    root.set_title("DHT-Messenger")
 
     Application(root, ClientWrapper("localhost", "8000"))
     root.start()

@@ -53,9 +53,9 @@ class UserManager:
         self._private_key = private_key
         self._public_key = public_key
         with open(self._cache_dir + "/" + UserManager.PRIVATE_KEY, "w") as private_key_file:
-            private_key_file.write(private_key)
+            private_key_file.write(private_key + "\n")
         with open(self._cache_dir + "/" + UserManager.PUBLIC_KEY, "w") as public_key_file:
-            public_key_file.write(public_key)
+            public_key_file.write(public_key + "\n")
 
     def init(self, key: tp.Optional[str]) -> None:
         new_key = PrivateKey.generate() if key is None else PrivateKey(bytes.fromhex(key))
