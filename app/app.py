@@ -77,7 +77,6 @@ class Application:
         self.add_chat_cell.add_key_command(py_cui.keys.KEY_ENTER, self.add_chat)
         self.registration_cell.add_key_command(py_cui.keys.KEY_ENTER, self.registration)
 
-        self.init_chats_list()
         self.cui.move_focus(self.registration_cell)
         self.start_background_updating()
 
@@ -176,6 +175,7 @@ class Application:
             return
 
         self.registration_cell.set_text("Public key: {}".format(public_key))
+        self.init_chats_list()
 
     def start_background_updating(self):
         operation_thread = threading.Thread(target=self.refresh, daemon=True)
