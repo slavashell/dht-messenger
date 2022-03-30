@@ -55,10 +55,17 @@ class Client:
         user2me_key = self.get_genesis_key(user, self.user)
         me2user = await self.read_messages_from_key(user, me2user_key)
         user2me = await self.read_messages_from_key(user, user2me_key)
+
+        me2user = list(map(lambda message: (message, "You"), me2user))
+        user2me = list(map(lambda message: (message, "User"), user2me))
         messages = list(
             map(
-                lambda message: (message[0].text, message[0].timestamp),
-                sorted(me2user + user2me, key=lambda message: message[0].timestamp),
+                lambda message: "{:<40}\t{} at {}".format(
+                    message[0][0].text,
+                    message[1],
+                    datetime.fromtimestamp(message[0][0].timestamp).strftime("%H:%M %d-%m-%Y"),
+                ),
+                sorted(me2user + user2me, key=lambda message: message[0][0].timestamp),
             )
         )
         return messages
