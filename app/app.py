@@ -157,6 +157,9 @@ class Application:
 
     def init_chats_list(self):
         chats = self.client.get_chats()
+        if chats is None:
+            return
+
         for c in chats:
             self.chats.append(c)
         self.refresh_chats_list()
