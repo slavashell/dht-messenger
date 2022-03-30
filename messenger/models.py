@@ -13,8 +13,10 @@ class User:
 
 class Message(BaseModel):
     text: str
-    next_message_key: str
     timestamp: float
+
+    def serialize(self):
+        return self.json().encode("utf-8")
 
 
 class AppMessage(BaseModel):
