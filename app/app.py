@@ -1,3 +1,4 @@
+import sys
 import threading
 import time
 
@@ -50,9 +51,11 @@ class ClientWrapper:
             return None
         return response.json()["key"]
 
-
-class Cui:
-    pass
+    def get_chats(self) -> Optional[List[str]]:
+        response = requests.get(url=self.url + "chats")
+        if response.status_code != 200:
+            return None
+        return response.json()["chats"]
 
 
 class Application:
@@ -74,13 +77,9 @@ class Application:
         self.add_chat_cell.add_key_command(py_cui.keys.KEY_ENTER, self.add_chat)
         self.registration_cell.add_key_command(py_cui.keys.KEY_ENTER, self.registration)
 
+        self.init_chats_list()
         self.cui.move_focus(self.registration_cell)
         self.start_background_updating()
-        # self.chats_list_cell.set_on_selection_change_event(self.refresh)
-        # self.cui.set_on_draw_update_func(self.refresh)
-
-    def set_gui(self):
-        pass
 
     def send_message(self):
         message = self.input_cell.get()
@@ -140,24 +139,27 @@ class Application:
     def add_chat(self):
         try:
             name, key = self.add_chat_cell.get().split(" ", 1)
-        except ValueError as e:
-            # TODO: logging
+        except ValueError:
+            print("Unexpected input format: {}".format(self.add_chat_cell.get()), file=sys.stderr)
             return
 
         if not name or not key:
             return
 
-        self.client.add_chat(name, key)  # TODO: try/except
+        try:
+            self.client.add_chat(name, key)
+        except requests.HTTPError:
+            return
+
         self.add_chat_cell.clear()
         self.chats.append(name)
         self.refresh_chats_list()
 
-    def start_background_updating(self):
-        operation_thread = threading.Thread(target=self.refresh, daemon=True)
-        operation_thread.start()
-
-    def update_chats_list(self):
-        pass
+    def init_chats_list(self):
+        chats = self.client.get_chats()
+        for c in chats:
+            self.chats.append(c)
+        self.refresh_chats_list()
 
     def registration(self):
         private_key = self.registration_cell.get()
@@ -171,6 +173,10 @@ class Application:
             return
 
         self.registration_cell.set_text("Public key: {}".format(public_key))
+
+    def start_background_updating(self):
+        operation_thread = threading.Thread(target=self.refresh, daemon=True)
+        operation_thread.start()
 
     def refresh(self):
         while True:
