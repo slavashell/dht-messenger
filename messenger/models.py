@@ -1,3 +1,4 @@
+import sys
 from dataclasses import dataclass
 
 from nacl.public import PrivateKey, PublicKey
@@ -16,7 +17,17 @@ class Message(BaseModel):
     timestamp: float
 
     def serialize(self):
-        return self.json().encode("utf-8")
+        return "{}\n{}".format(self.timestamp, self.text).encode("utf-8")
+
+    @staticmethod
+    def deserialize(message: bytes) -> "Message":
+        message = message.decode("utf-8")
+        try:
+            timestamp, text = message.split("\n", 1)
+        except ValueError:
+            print("Unexpected serialization format: {}".format(message), file=sys.stderr)
+            raise ValueError
+        return Message(text=text, timestamp=float(timestamp))
 
 
 class AppMessage(BaseModel):

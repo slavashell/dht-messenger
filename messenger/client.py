@@ -23,7 +23,7 @@ class Client:
     def get_next_message_key(message: Message, message_key: bytes) -> bytes:
         return hashlib.sha256(message.serialize() + message_key).digest()
 
-    async def get_message_key(self, user: User) -> str:
+    async def get_message_key(self, user: User) -> bytes:
         message_key = self.get_genesis_key(self.user, user)
         messages = await self.read_messages_from_key(user, message_key)
         if messages:
@@ -38,7 +38,7 @@ class Client:
 
         message_box = Box(self.user.private_key, user.public_key)
         decrypted_message = message_box.decrypt(base64.b64decode(message))
-        return Message.parse_raw(decrypted_message)
+        return Message.deserialize(decrypted_message)
 
     async def read_messages_from_key(self, user: User, message_key: bytes):
         messages = []

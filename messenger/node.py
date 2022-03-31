@@ -5,6 +5,10 @@ from kademlia.network import Server
 
 
 class DHTServer(Server):
+    def __init__(self, ksize=20, alpha=3, node_id=None, storage=None):
+        super().__init__(ksize, alpha, node_id, storage)
+        self.ping_loop = None
+
     def ping_neighbors(self):
         asyncio.ensure_future(self._ping_neighbors())
         loop = asyncio.get_event_loop()
@@ -39,8 +43,8 @@ class DHTNode:
         await self.connect()
         return self
 
-    async def __aexit__(self, exc_type, exc, tb) -> None:
-        await self.stop()
+    def __aexit__(self, exc_type, exc, tb) -> None:
+        self.stop()
 
     async def connect(self) -> None:
         await self._server.listen(self._port)
@@ -50,8 +54,8 @@ class DHTNode:
     def stop(self) -> None:
         self._server.stop()
 
-    async def get(self, key: str) -> str:
+    async def get(self, key: bytes) -> str:
         return await self._server.get(key)
 
-    async def set(self, key: str, val: str):
+    async def set(self, key: bytes, val: bytes):
         return await self._server.set(key, val)
