@@ -132,7 +132,13 @@ class Application:
 
         self.chat_cell.clear()
         for message in messages:
-            self.chat_cell.add_item(message)
+            try:
+                text, stamp = message.split("\t", 1)
+            except ValueError:
+                print("Unexpected message format: {}".format(message), file=sys.stderr)
+                continue
+            self.chat_cell.add_item(stamp)
+            self.chat_cell.add_item(text)
 
     def add_chat(self):
         try:
