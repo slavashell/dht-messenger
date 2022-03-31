@@ -1,7 +1,8 @@
-requests
-kademlia
+PyNaCl
 asyncio
 fastapi
+kademlia
 py-cui
-PyNaCl
+pydantic
+requests
 uvicorn

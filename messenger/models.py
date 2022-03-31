@@ -19,10 +19,10 @@ class Message(BaseModel):
     def serialize(self):
         return "{}\n{}".format(self.timestamp, self.text).encode("utf-8")
 
-    @staticmethod
-    def deserialize(message: bytes) -> "Message":
+    @classmethod
+    def deserialize(cls, message: bytes) -> "Message":
         timestamp, text = message.decode("utf-8").split("\n", 1)
-        return Message(text=text, timestamp=float(timestamp))
+        return cls(text=text, timestamp=float(timestamp))
 
 
 class AppMessage(BaseModel):
