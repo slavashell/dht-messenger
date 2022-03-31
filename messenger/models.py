@@ -21,12 +21,7 @@ class Message(BaseModel):
 
     @staticmethod
     def deserialize(message: bytes) -> "Message":
-        message = message.decode("utf-8")
-        try:
-            timestamp, text = message.split("\n", 1)
-        except ValueError:
-            print("Unexpected serialization format: {}".format(message), file=sys.stderr)
-            raise ValueError
+        timestamp, text = message.decode("utf-8").split("\n", 1)
         return Message(text=text, timestamp=float(timestamp))
 
 
